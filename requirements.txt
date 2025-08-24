@@ -1,0 +1,58 @@
+# Core Framework
+fastapi==0.104.1
+uvicorn==0.24.0
+pydantic==2.5.0
+python-multipart==0.0.6
+
+# Data Processing & ML
+numpy==1.24.3
+pandas==2.0.3
+scikit-learn==1.3.0
+torch==2.1.0
+transformers==4.35.0
+sentence-transformers==2.2.2
+colbert-ai==0.2.17
+
+# Database & Search
+psycopg2-binary==2.9.7
+sqlalchemy==2.0.23
+opensearch-py==2.3.1
+redis==5.0.1
+
+# PDF Processing
+PyPDF2==3.0.1
+pypdf==3.17.0
+pdfplumber==0.9.0
+pytesseract==0.3.10
+
+# Async & Task Queue
+aiohttp==3.8.6
+celery==5.3.4
+asyncpg==0.29.0
+
+# LLM Integration
+ollama==0.1.7
+openai==1.3.5
+
+# Observability & Monitoring
+langfuse==2.6.3
+prometheus-client==0.17.1
+structlog==23.2.0
+
+# Web Interface
+gradio==3.50.2
+streamlit==1.28.0
+
+# Utilities
+python-dotenv==1.0.0
+pyyaml==6.0.1
+click==8.1.7
+tqdm==4.66.1
+httpx==0.25.2
+
+# Development
+pytest==7.4.3
+pytest-asyncio==0.21.1
+black==23.10.1
+isort==5.12.0
+mypy==1.7.0
