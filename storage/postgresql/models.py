@@ -2,7 +2,7 @@
 PostgreSQL Data Models
 SQLAlchemy models for document and chunk storage
 """
-from sqlalchemy import Column, String, Text, Integer, DateTime, JSON, ForeignKey, Boolean
+from sqlalchemy import Column, String, Text, Integer, Float, DateTime, JSON, ForeignKey, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -104,7 +104,7 @@ class DocumentChunk(Base):
 
 
 class QueryLog(Base):
-    """Query logging for analytics and feedback"""
+    """Query logging for analytics and feedback with hallucination detection"""
     __tablename__ = "query_logs"
     
     id = Column(String(255), primary_key=True)
@@ -121,6 +121,24 @@ class QueryLog(Base):
     generation_time_ms = Column(Integer)
     total_time_ms = Column(Integer)
     
+    # Hallucination detection (NEW - Week 3)
+    hallucination_score = Column(Float)  # Risk score 0.0 to 1.0
+    hallucination_risk_level = Column(String(20))  # low, medium, high, critical
+    is_hallucination = Column(Boolean, default=False)  # Whether hallucination detected
+    quality_score = Column(Float)  # Overall quality score 0.0 to 1.0
+    validation_confidence = Column(Float)  # Confidence in validation 0.0 to 1.0
+    sla_certificate = Column(JSON)  # Optional SLA certificate data
+    validation_warnings = Column(JSON)  # List of validation warnings
+    sources_used = Column(JSON)  # List of source documents used
+    
+    # LLM metadata (NEW - Week 3)
+    llm_backend = Column(String(50))  # openai, ollama, anthropic
+    llm_model = Column(String(100))  # Model name used
+    prompt_tokens = Column(Integer)  # Tokens in prompt
+    completion_tokens = Column(Integer)  # Tokens in completion
+    total_tokens = Column(Integer)  # Total tokens used
+    regeneration_attempts = Column(Integer, default=0)  # Number of regeneration attempts
+    
     # User feedback
     user_rating = Column(Integer)  # 1-5 scale
     user_feedback = Column(Text)
@@ -129,13 +147,60 @@ class QueryLog(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     
     def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary"""
         return {
             "id": self.id,
             "query_text": self.query_text,
+            "user_id": self.user_id,
+            "final_answer": self.final_answer,
             "confidence_score": self.confidence_score,
+            
+            # Performance metrics
             "retrieval_time_ms": self.retrieval_time_ms,
             "generation_time_ms": self.generation_time_ms,
             "total_time_ms": self.total_time_ms,
+            
+            # Hallucination metrics
+            "hallucination_score": self.hallucination_score,
+            "hallucination_risk_level": self.hallucination_risk_level,
+            "is_hallucination": self.is_hallucination,
+            "quality_score": self.quality_score,
+            "validation_confidence": self.validation_confidence,
+            "validation_warnings": self.validation_warnings,
+            "sources_used": self.sources_used,
+            
+            # LLM metadata
+            "llm_backend": self.llm_backend,
+            "llm_model": self.llm_model,
+            "total_tokens": self.total_tokens,
+            "regeneration_attempts": self.regeneration_attempts,
+            
+            # User feedback
             "user_rating": self.user_rating,
+            "user_feedback": self.user_feedback,
+            
             "created_at": self.created_at.isoformat() if self.created_at else None
         }
+    
+    def get_risk_summary(self) -> Dict[str, Any]:
+        """Get risk assessment summary"""
+        return {
+            "hallucination_score": self.hallucination_score,
+            "risk_level": self.hallucination_risk_level,
+            "is_hallucination": self.is_hallucination,
+            "quality_score": self.quality_score,
+            "confidence": self.validation_confidence,
+            "warnings_count": len(self.validation_warnings) if self.validation_warnings else 0
+        }
+    
+    def is_high_quality(self) -> bool:
+        """Check if query result is high quality"""
+        if self.quality_score is None or self.hallucination_score is None:
+            return False
+        
+        # High quality if good quality score and low hallucination risk
+        return (
+            self.quality_score >= 0.7 and
+            self.hallucination_score <= 0.3 and
+            self.hallucination_risk_level in ["low", "medium"]
+        )
